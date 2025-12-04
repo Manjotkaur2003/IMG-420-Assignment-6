@@ -1,0 +1,330 @@
+[gd_scene load_steps=19 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Player.cs" id="1"]
+[ext_resource type="Script" path="res://Scripts/Enemy.cs" id="2"]
+[ext_resource type="PackedScene" path="res://Ally.tscn" id="3"]
+[ext_resource type="Script" path="res://Scripts/BehaviorTree/BTSelector.cs" id="4"]
+[ext_resource type="Script" path="res://Scripts/BehaviorTree/BTSequence.cs" id="5"]
+[ext_resource type="Script" path="res://Scripts/BehaviorTree/Conditions/BTIsHealthCritical.cs" id="6"]
+[ext_resource type="Script" path="res://Scripts/BehaviorTree/Actions/BTFlee.cs" id="7"]
+[ext_resource type="Script" path="res://Scripts/BehaviorTree/Conditions/BTIsHealthLow.cs" id="8"]
+[ext_resource type="Script" path="res://Scripts/BehaviorTree/Conditions/BTAreAlliesAvailable.cs" id="9"]
+[ext_resource type="Script" path="res://Scripts/BehaviorTree/Actions/BTSummonAlly.cs" id="10"]
+[ext_resource type="Script" path="res://Scripts/BehaviorTree/Conditions/BTIsPlayerInRange.cs" id="11"]
+[ext_resource type="Script" path="res://Scripts/BehaviorTree/Conditions/BTCanAttack.cs" id="12"]
+[ext_resource type="Script" path="res://Scripts/BehaviorTree/Actions/BTAttack.cs" id="13"]
+[ext_resource type="Script" path="res://Scripts/BehaviorTree/Actions/BTChasePlayer.cs" id="14"]
+[ext_resource type="Script" path="res://Scripts/BehaviorTree/Actions/BTPatrol.cs" id="15"]
+[ext_resource type="Script" path="res://Scripts/AggressiveEnemy.cs" id="16"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1"]
+size = Vector2(1280, 40)
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_1"]
+radius = 16.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_2"]
+radius = 20.0
+
+[node name="Main" type="Node2D"]
+
+[node name="Background" type="ColorRect" parent="."]
+offset_right = 1280.0
+offset_bottom = 720.0
+color = Color(0.12, 0.12, 0.15, 1)
+
+[node name="Instructions" type="Label" parent="."]
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 400.0
+offset_bottom = 180.0
+text = "WASD / Arrow Keys = Move
+SPACE = Attack nearby enemy
+
+Yellow circle = Detection (200)
+Red circle = Attack (50)
+Purple circle = Aggressive (300)
+
+Enemy Types:
+- RED: Normal (flees, summons allies)
+- PURPLE: Aggressive (never flees!)"
+
+[node name="PatrolPoints" type="Node2D" parent="."]
+
+[node name="P1" type="Node2D" parent="PatrolPoints"]
+position = Vector2(150, 150)
+
+[node name="P2" type="Node2D" parent="PatrolPoints"]
+position = Vector2(350, 150)
+
+[node name="P3" type="Node2D" parent="PatrolPoints"]
+position = Vector2(350, 300)
+
+[node name="P4" type="Node2D" parent="PatrolPoints"]
+position = Vector2(150, 300)
+
+[node name="P5" type="Node2D" parent="PatrolPoints"]
+position = Vector2(900, 400)
+
+[node name="P6" type="Node2D" parent="PatrolPoints"]
+position = Vector2(1100, 400)
+
+[node name="P7" type="Node2D" parent="PatrolPoints"]
+position = Vector2(1100, 600)
+
+[node name="P8" type="Node2D" parent="PatrolPoints"]
+position = Vector2(900, 600)
+
+[node name="Player" type="CharacterBody2D" parent="."]
+position = Vector2(640, 360)
+collision_layer = 2
+collision_mask = 1
+script = ExtResource("1")
+MoveSpeed = 200.0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Player"]
+shape = SubResource("CircleShape2D_1")
+
+[node name="Visual" type="Polygon2D" parent="Player"]
+color = Color(0.2, 0.6, 1, 1)
+polygon = PackedVector2Array(-15, -15, 15, -15, 15, 15, -15, 15)
+
+[node name="Label" type="Label" parent="Player"]
+offset_left = -25.0
+offset_top = -45.0
+offset_right = 25.0
+offset_bottom = -25.0
+text = "PLAYER"
+horizontal_alignment = 1
+
+[node name="Enemy1" type="CharacterBody2D" parent="."]
+position = Vector2(250, 225)
+collision_layer = 1
+collision_mask = 6
+script = ExtResource("2")
+MoveSpeed = 100.0
+PatrolSpeed = 60.0
+MaxHealth = 100.0
+AttackDamage = 10.0
+AttackCooldownSeconds = 1.0
+AllyScene = ExtResource("3")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Enemy1"]
+shape = SubResource("CircleShape2D_2")
+
+[node name="Visual" type="Polygon2D" parent="Enemy1"]
+color = Color(1, 0.3, 0.3, 1)
+polygon = PackedVector2Array(-18, -18, 18, -18, 18, 18, -18, 18)
+
+[node name="Label" type="Label" parent="Enemy1"]
+offset_left = -25.0
+offset_top = -50.0
+offset_right = 25.0
+offset_bottom = -30.0
+text = "ENEMY"
+horizontal_alignment = 1
+
+[node name="BehaviorTree" type="Node" parent="Enemy1"]
+script = ExtResource("4")
+
+[node name="EmergencyFlee" type="Node" parent="Enemy1/BehaviorTree"]
+script = ExtResource("5")
+
+[node name="IsHealthCritical" type="Node" parent="Enemy1/BehaviorTree/EmergencyFlee"]
+script = ExtResource("6")
+ThresholdPercent = 0.2
+
+[node name="Flee" type="Node" parent="Enemy1/BehaviorTree/EmergencyFlee"]
+script = ExtResource("7")
+
+[node name="CallForHelp" type="Node" parent="Enemy1/BehaviorTree"]
+script = ExtResource("5")
+
+[node name="IsHealthLow" type="Node" parent="Enemy1/BehaviorTree/CallForHelp"]
+script = ExtResource("8")
+ThresholdPercent = 0.5
+
+[node name="AreAlliesAvailable" type="Node" parent="Enemy1/BehaviorTree/CallForHelp"]
+script = ExtResource("9")
+
+[node name="SummonAlly" type="Node" parent="Enemy1/BehaviorTree/CallForHelp"]
+script = ExtResource("10")
+
+[node name="Combat" type="Node" parent="Enemy1/BehaviorTree"]
+script = ExtResource("5")
+
+[node name="IsPlayerInRange" type="Node" parent="Enemy1/BehaviorTree/Combat"]
+script = ExtResource("11")
+Range = 200.0
+
+[node name="CombatOptions" type="Node" parent="Enemy1/BehaviorTree/Combat"]
+script = ExtResource("4")
+
+[node name="AttackSequence" type="Node" parent="Enemy1/BehaviorTree/Combat/CombatOptions"]
+script = ExtResource("5")
+
+[node name="IsPlayerInAttackRange" type="Node" parent="Enemy1/BehaviorTree/Combat/CombatOptions/AttackSequence"]
+script = ExtResource("11")
+Range = 50.0
+
+[node name="CanAttack" type="Node" parent="Enemy1/BehaviorTree/Combat/CombatOptions/AttackSequence"]
+script = ExtResource("12")
+
+[node name="Attack" type="Node" parent="Enemy1/BehaviorTree/Combat/CombatOptions/AttackSequence"]
+script = ExtResource("13")
+
+[node name="ChaseSequence" type="Node" parent="Enemy1/BehaviorTree/Combat/CombatOptions"]
+script = ExtResource("5")
+
+[node name="ChasePlayer" type="Node" parent="Enemy1/BehaviorTree/Combat/CombatOptions/ChaseSequence"]
+script = ExtResource("14")
+
+[node name="PatrolSequence" type="Node" parent="Enemy1/BehaviorTree"]
+script = ExtResource("5")
+
+[node name="Patrol" type="Node" parent="Enemy1/BehaviorTree/PatrolSequence"]
+script = ExtResource("15")
+PatrolPointsPaths = [NodePath("../PatrolPoints/P1"), NodePath("../PatrolPoints/P2"), NodePath("../PatrolPoints/P3"), NodePath("../PatrolPoints/P4")]
+
+[node name="Enemy2" type="CharacterBody2D" parent="."]
+position = Vector2(1000, 500)
+collision_layer = 1
+collision_mask = 6
+script = ExtResource("2")
+MoveSpeed = 100.0
+PatrolSpeed = 60.0
+MaxHealth = 100.0
+AttackDamage = 10.0
+AttackCooldownSeconds = 1.0
+AllyScene = ExtResource("3")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Enemy2"]
+shape = SubResource("CircleShape2D_2")
+
+[node name="Visual" type="Polygon2D" parent="Enemy2"]
+color = Color(1, 0.3, 0.3, 1)
+polygon = PackedVector2Array(-18, -18, 18, -18, 18, 18, -18, 18)
+
+[node name="Label" type="Label" parent="Enemy2"]
+offset_left = -25.0
+offset_top = -50.0
+offset_right = 25.0
+offset_bottom = -30.0
+text = "ENEMY"
+horizontal_alignment = 1
+
+[node name="BehaviorTree" type="Node" parent="Enemy2"]
+script = ExtResource("4")
+
+[node name="EmergencyFlee" type="Node" parent="Enemy2/BehaviorTree"]
+script = ExtResource("5")
+
+[node name="IsHealthCritical" type="Node" parent="Enemy2/BehaviorTree/EmergencyFlee"]
+script = ExtResource("6")
+ThresholdPercent = 0.2
+
+[node name="Flee" type="Node" parent="Enemy2/BehaviorTree/EmergencyFlee"]
+script = ExtResource("7")
+
+[node name="CallForHelp" type="Node" parent="Enemy2/BehaviorTree"]
+script = ExtResource("5")
+
+[node name="IsHealthLow" type="Node" parent="Enemy2/BehaviorTree/CallForHelp"]
+script = ExtResource("8")
+ThresholdPercent = 0.5
+
+[node name="AreAlliesAvailable" type="Node" parent="Enemy2/BehaviorTree/CallForHelp"]
+script = ExtResource("9")
+
+[node name="SummonAlly" type="Node" parent="Enemy2/BehaviorTree/CallForHelp"]
+script = ExtResource("10")
+
+[node name="Combat" type="Node" parent="Enemy2/BehaviorTree"]
+script = ExtResource("5")
+
+[node name="IsPlayerInRange" type="Node" parent="Enemy2/BehaviorTree/Combat"]
+script = ExtResource("11")
+Range = 200.0
+
+[node name="CombatOptions" type="Node" parent="Enemy2/BehaviorTree/Combat"]
+script = ExtResource("4")
+
+[node name="AttackSequence" type="Node" parent="Enemy2/BehaviorTree/Combat/CombatOptions"]
+script = ExtResource("5")
+
+[node name="IsPlayerInAttackRange" type="Node" parent="Enemy2/BehaviorTree/Combat/CombatOptions/AttackSequence"]
+script = ExtResource("11")
+Range = 50.0
+
+[node name="CanAttack" type="Node" parent="Enemy2/BehaviorTree/Combat/CombatOptions/AttackSequence"]
+script = ExtResource("12")
+
+[node name="Attack" type="Node" parent="Enemy2/BehaviorTree/Combat/CombatOptions/AttackSequence"]
+script = ExtResource("13")
+
+[node name="ChaseSequence" type="Node" parent="Enemy2/BehaviorTree/Combat/CombatOptions"]
+script = ExtResource("5")
+
+[node name="ChasePlayer" type="Node" parent="Enemy2/BehaviorTree/Combat/CombatOptions/ChaseSequence"]
+script = ExtResource("14")
+
+[node name="PatrolSequence" type="Node" parent="Enemy2/BehaviorTree"]
+script = ExtResource("5")
+
+[node name="Patrol" type="Node" parent="Enemy2/BehaviorTree/PatrolSequence"]
+script = ExtResource("15")
+PatrolPointsPaths = [NodePath("../PatrolPoints/P5"), NodePath("../PatrolPoints/P6"), NodePath("../PatrolPoints/P7"), NodePath("../PatrolPoints/P8")]
+
+[node name="AggressiveEnemy" type="CharacterBody2D" parent="."]
+position = Vector2(640, 550)
+collision_layer = 1
+collision_mask = 6
+script = ExtResource("16")
+MoveSpeed = 150.0
+PatrolSpeed = 80.0
+MaxHealth = 80.0
+AttackDamage = 15.0
+AttackCooldownSeconds = 0.5
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="AggressiveEnemy"]
+shape = SubResource("CircleShape2D_2")
+
+[node name="Visual" type="Polygon2D" parent="AggressiveEnemy"]
+color = Color(0.8, 0.2, 1, 1)
+polygon = PackedVector2Array(-18, -18, 18, -18, 18, 18, -18, 18)
+
+[node name="Label" type="Label" parent="AggressiveEnemy"]
+offset_left = -40.0
+offset_top = -55.0
+offset_right = 40.0
+offset_bottom = -25.0
+text = "AGGRESSIVE"
+horizontal_alignment = 1
+
+[node name="Walls" type="Node2D" parent="."]
+
+[node name="TopWall" type="StaticBody2D" parent="Walls"]
+position = Vector2(640, 0)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Walls/TopWall"]
+shape = SubResource("RectangleShape2D_1")
+
+[node name="BottomWall" type="StaticBody2D" parent="Walls"]
+position = Vector2(640, 720)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Walls/BottomWall"]
+shape = SubResource("RectangleShape2D_1")
+
+[node name="LeftWall" type="StaticBody2D" parent="Walls"]
+position = Vector2(0, 360)
+rotation = 1.5708
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Walls/LeftWall"]
+shape = SubResource("RectangleShape2D_1")
+
+[node name="RightWall" type="StaticBody2D" parent="Walls"]
+position = Vector2(1280, 360)
+rotation = 1.5708
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Walls/RightWall"]
+shape = SubResource("RectangleShape2D_1")

@@ -1,0 +1,106 @@
+[gd_scene load_steps=16 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Enemy.cs" id="1"]
+[ext_resource type="PackedScene" path="res://Ally.tscn" id="2"]
+[ext_resource type="Script" path="res://Scripts/BehaviorTree/BTSelector.cs" id="3"]
+[ext_resource type="Script" path="res://Scripts/BehaviorTree/BTSequence.cs" id="4"]
+[ext_resource type="Script" path="res://Scripts/BehaviorTree/Conditions/BTIsHealthCritical.cs" id="5"]
+[ext_resource type="Script" path="res://Scripts/BehaviorTree/Actions/BTFlee.cs" id="6"]
+[ext_resource type="Script" path="res://Scripts/BehaviorTree/Conditions/BTIsHealthLow.cs" id="7"]
+[ext_resource type="Script" path="res://Scripts/BehaviorTree/Conditions/BTAreAlliesAvailable.cs" id="8"]
+[ext_resource type="Script" path="res://Scripts/BehaviorTree/Actions/BTSummonAlly.cs" id="9"]
+[ext_resource type="Script" path="res://Scripts/BehaviorTree/Conditions/BTIsPlayerInRange.cs" id="10"]
+[ext_resource type="Script" path="res://Scripts/BehaviorTree/Conditions/BTCanAttack.cs" id="11"]
+[ext_resource type="Script" path="res://Scripts/BehaviorTree/Actions/BTAttack.cs" id="12"]
+[ext_resource type="Script" path="res://Scripts/BehaviorTree/Actions/BTChasePlayer.cs" id="13"]
+[ext_resource type="Script" path="res://Scripts/BehaviorTree/Actions/BTPatrol.cs" id="14"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_1"]
+radius = 20.0
+
+[node name="Enemy" type="CharacterBody2D"]
+collision_layer = 1
+collision_mask = 6
+script = ExtResource("1")
+MoveSpeed = 100.0
+PatrolSpeed = 60.0
+MaxHealth = 100.0
+AttackDamage = 10.0
+AttackCooldownSeconds = 1.0
+AllyScene = ExtResource("2")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_1")
+
+[node name="Visual" type="Polygon2D" parent="."]
+color = Color(1, 0.3, 0.3, 1)
+polygon = PackedVector2Array(-18, -18, 18, -18, 18, 18, -18, 18)
+
+[node name="Label" type="Label" parent="."]
+offset_left = -25.0
+offset_top = -50.0
+offset_right = 25.0
+offset_bottom = -30.0
+text = "ENEMY"
+horizontal_alignment = 1
+
+[node name="BehaviorTree" type="Node" parent="."]
+script = ExtResource("3")
+
+[node name="EmergencyFlee" type="Node" parent="BehaviorTree"]
+script = ExtResource("4")
+
+[node name="IsHealthCritical" type="Node" parent="BehaviorTree/EmergencyFlee"]
+script = ExtResource("5")
+ThresholdPercent = 0.2
+
+[node name="Flee" type="Node" parent="BehaviorTree/EmergencyFlee"]
+script = ExtResource("6")
+
+[node name="CallForHelp" type="Node" parent="BehaviorTree"]
+script = ExtResource("4")
+
+[node name="IsHealthLow" type="Node" parent="BehaviorTree/CallForHelp"]
+script = ExtResource("7")
+ThresholdPercent = 0.5
+
+[node name="AreAlliesAvailable" type="Node" parent="BehaviorTree/CallForHelp"]
+script = ExtResource("8")
+
+[node name="SummonAlly" type="Node" parent="BehaviorTree/CallForHelp"]
+script = ExtResource("9")
+
+[node name="Combat" type="Node" parent="BehaviorTree"]
+script = ExtResource("4")
+
+[node name="IsPlayerInRange" type="Node" parent="BehaviorTree/Combat"]
+script = ExtResource("10")
+Range = 200.0
+
+[node name="CombatOptions" type="Node" parent="BehaviorTree/Combat"]
+script = ExtResource("3")
+
+[node name="AttackSequence" type="Node" parent="BehaviorTree/Combat/CombatOptions"]
+script = ExtResource("4")
+
+[node name="IsPlayerInAttackRange" type="Node" parent="BehaviorTree/Combat/CombatOptions/AttackSequence"]
+script = ExtResource("10")
+Range = 50.0
+
+[node name="CanAttack" type="Node" parent="BehaviorTree/Combat/CombatOptions/AttackSequence"]
+script = ExtResource("11")
+
+[node name="Attack" type="Node" parent="BehaviorTree/Combat/CombatOptions/AttackSequence"]
+script = ExtResource("12")
+
+[node name="ChaseSequence" type="Node" parent="BehaviorTree/Combat/CombatOptions"]
+script = ExtResource("4")
+
+[node name="ChasePlayer" type="Node" parent="BehaviorTree/Combat/CombatOptions/ChaseSequence"]
+script = ExtResource("13")
+
+[node name="PatrolSequence" type="Node" parent="BehaviorTree"]
+script = ExtResource("4")
+
+[node name="Patrol" type="Node" parent="BehaviorTree/PatrolSequence"]
+script = ExtResource("14")
